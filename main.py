@@ -6,7 +6,8 @@ from scraping import (
     ScrapingUser, 
     ScrapingUserFollowers, 
     ScrapingUserFollowing,
-    ScrapingGetUserProfile
+    ScrapingGetUserProfile,
+    ScrapingLikePost
     )
 from config import *
 
@@ -20,6 +21,7 @@ class InstagramScrapingManager:
 
     def __init__(self, **kwargs):
         self.link = kwargs['link']
+        self.cookie = None
         self.username = kwargs['username']
         self.password = kwargs['password']
         self.login_url = kwargs['login_url']
@@ -28,25 +30,36 @@ class InstagramScrapingManager:
 
         ds_user_id = ScrapingGetUserProfile(self.session, kwargs['username_for_show_follows']).scraping()['id']
 
+        self.scraping_like_post = ScrapingLikePost(self.session, kwargs['post_url'], self.cookie)
         self.scraping_user_followers = ScrapingUserFollowers(self.session, ds_user_id)
         self.scraping_user_followings = ScrapingUserFollowing(self.session, ds_user_id)
-        
         self.scraping_user = ScrapingUser(kwargs['data_base_file_name'], 'users', self.session, kwargs['tag_name'])
 
     def start_scraping(self):
-        self.scraping_user_followers.scraping()
+        self.scraping_like_post.scraping()
         print('''
         ###################################################
         ###################################################''')
         print('\n\n')
 
-        self.scraping_user_followings.scraping()
-        print('''
-        ###################################################
-        ###################################################''')
-        print('\n\n')
 
-        self.scraping_user.scraping()
+        # self.scraping_user_followers.scraping()
+        # print('''
+        # ###################################################
+        # ###################################################''')
+        # print('\n\n')
+
+        # self.scraping_user_followings.scraping()
+        # print('''
+        # ###################################################
+        # ###################################################''')
+        # print('\n\n')
+
+        # self.scraping_user.scraping()
+        # print('''
+        # ###################################################
+        # ###################################################''')
+        # print('\n\n')
         
     def login(self):
         time = int(datetime.now().timestamp())
@@ -71,22 +84,18 @@ class InstagramScrapingManager:
 
         if os.path.getsize('cookie.txt') == 0:
             login = self.login()
-            login_json = json.loads(login.text)
-            print(login_json)
             cookies = login.cookies
             cookie_jar = cookies.get_dict()
             cookie_json = json.dumps(cookie_jar) 
             file_cookies = open('cookie.txt', 'w')
             file_cookies.write(cookie_json)
             file_cookies.close()
-
-        else:
-            print('**************************************')
-            cookie_file = open('cookie.txt', 'r')
-            cookie = cookie_file.read()
-            cookie = json.loads(cookie)
-            self.session.cookies.update(cookie)
-
+        
+        cookie_file = open('cookie.txt', 'r').read()
+        cookie = json.loads(cookie_file)
+        self.session.cookies.update(cookie)
+        self.cookie = cookie
+        print('Login successful.')
 
 # Client
 # ==========================================================================
@@ -106,5 +115,6 @@ if __name__ == '__main__':
         login_url=LOGIN_URL,
         data_base_file_name=DATA_BASE_FILE_NAME,
         tag_name=TAG_NAME,
-        username_for_show_follows=USERNAME_FOR_SHOW_FOLLOWS
+        username_for_show_follows=USERNAME_FOR_SHOW_FOLLOWS,
+        post_url=POST_URL
         ))

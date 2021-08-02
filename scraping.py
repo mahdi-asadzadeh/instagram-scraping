@@ -1,9 +1,10 @@
 import re
 import json
+from config import *
 from requests import Session
 from abc import ABC, abstractmethod
 from database import DataBaseController
-from config import *
+
 
 # Subsystems
 # ==========================================================================
@@ -15,6 +16,24 @@ class Scraping(ABC):
     @abstractmethod
     def scraping(self):
         pass
+
+
+class ScrapingLikePost(Scraping):
+
+    def __init__(self, session: Session, post_url, cookie):
+        self.session = session
+        self.post_url = post_url
+        self.cookie = cookie
+
+    def scraping(self):
+        response = self.session.get(f'{INSTAGRAM_URL}/p/{self.post_url}/?__a=1')
+        json_response = json.loads(response.text)
+        id = json_response['graphql']['shortcode_media']['id']
+        like_url = f'{INSTAGRAM_URL}/web/likes/{id}/like/'
+        self.session.headers.update({'X-CSRFToken': self.cookie['csrftoken'],})
+        result = self.session.post(like_url)
+        print(result)
+        print('Like successful.')
 
 
 class ScrapingGetUserProfile(Scraping):
@@ -67,6 +86,7 @@ class ScrapingUserFollowers(Scraping):
                 followers_list.append(edge['node'])
 
         print(followers_list)
+
       
 
 class ScrapingUserFollowing(Scraping):
